@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Depo Stok Kontrol — Bayii Paneli</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0f2f5;--surface:#fff;--surface2:#f7f8fa;--surface3:#eef0f3;
+  --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.15);
+  --text:#111;--text2:#555;--text3:#aaa;
+  --accent:#009999;--accent-dark:#007070;--accent-light:#e0f5f5;
+  --r:8px;--rl:14px;
+  --shadow:0 2px 12px rgba(0,0,0,0.07);
+  --shadow-lg:0 8px 32px rgba(0,0,0,0.12);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* ── Layout ── */
+.app{display:flex;min-height:100vh}
+
+/* ── Sidebar ── */
+.sidebar{
+  width:230px;background:var(--surface);border-right:.5px solid var(--border);
+  display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:20;
+  transition:transform .25s cubic-bezier(.4,0,.2,1);
+}
+.logo-wrap{padding:20px 16px;border-bottom:.5px solid var(--border);display:flex;align-items:center;gap:12px}
+.logo-mark{
+  width:38px;height:38px;background:var(--accent);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  box-shadow:0 4px 12px rgba(0,153,153,.3);
+}
+.logo-mark svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.logo-text{font-size:14px;font-weight:700;line-height:1.2;letter-spacing:-.3px}
+.logo-sub{font-size:11px;color:var(--text3);margin-top:1px}
+
+nav{padding:14px 10px;flex:1;overflow-y:auto}
+.nav-section{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;padding:0 10px;margin:14px 0 6px}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r);
+  cursor:pointer;font-size:13px;color:var(--text2);margin-bottom:2px;
+  transition:background .15s,color .15s,transform .1s;user-select:none;position:relative;
+}
+.nav-item:hover{background:var(--surface2);color:var(--text);transform:translateX(2px)}
+.nav-item.active{background:var(--accent-light);color:var(--accent-dark);font-weight:600}
+.nav-item.active::before{content:'';position:absolute;left:-10px;top:50%;transform:translateY(-50%);width:3px;height:18px;background:var(--accent);border-radius:0 3px 3px 0}
+.nav-item i{font-size:18px;transition:transform .2s}
+.nav-item:hover i{transform:scale(1.1)}
+.nav-badge{margin-left:auto;background:#fef3c7;color:#92400e;font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* ── Main ── */
+.main{margin-left:230px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+
+/* ── Topbar ── */
+.topbar{
+  background:var(--surface);border-bottom:.5px solid var(--border);
+  padding:12px 24px;display:flex;align-items:center;gap:12px;
+  position:sticky;top:0;z-index:10;
+  box-shadow:0 1px 4px rgba(0,0,0,.04);
+}
+.page-title{font-size:16px;font-weight:700;white-space:nowrap;letter-spacing:-.3px}
+.search-wrap{position:relative;flex:1;max-width:380px}
+.search-wrap i{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:16px;pointer-events:none;transition:color .15s}
+.search-wrap:focus-within i{color:var(--accent)}
+.search-wrap input{
+  width:100%;padding:9px 12px 9px 36px;font-size:13px;
+  border:.5px solid var(--border2);border-radius:var(--r);
+  background:var(--surface2);color:var(--text);outline:none;
+  transition:border-color .15s,box-shadow .15s;
+}
+.search-wrap input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,153,153,.1)}
+.topbar-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.btn{
+  display:inline-flex;align-items:center;gap:6px;padding:8px 15px;
+  border-radius:var(--r);font-size:13px;font-weight:500;
+  cursor:pointer;border:none;transition:all .15s;white-space:nowrap;
+}
+.btn-primary{background:var(--accent);color:#fff;box-shadow:0 2px 8px rgba(0,153,153,.25)}
+.btn-primary:hover{background:var(--accent-dark);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,153,153,.35)}
+.btn-primary:active{transform:translateY(0)}
+.btn-secondary{background:transparent;border:.5px solid var(--border2);color:var(--text)}
+.btn-secondary:hover{background:var(--surface2)}
+.btn-danger{background:#fee2e2;color:#991b1b;border:none}
+.btn-danger:hover{background:#fecaca}
+
+/* ── Content ── */
+.content{padding:24px;flex:1}
+.tab-pane{display:none}
+.tab-pane.active{display:block;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Chips ── */
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.chip{
+  font-size:12px;padding:6px 14px;border:.5px solid var(--border2);
+  border-radius:20px;background:transparent;color:var(--text2);
+  cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;
+}
+.chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
+.chip.active{background:var(--accent-light);color:var(--accent-dark);border-color:var(--accent);font-weight:600}
+.chip svg{width:14px;height:14px}
+
+/* ── Stats ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:24px}
+.stat-card{
+  background:var(--surface);border:.5px solid var(--border);border-radius:var(--rl);
+  padding:18px 20px;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s;cursor:default;
+}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.stat-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;border-radius:0 0 var(--rl) var(--rl)}
+.stat-card.c-normal::after{background:var(--accent)}
+.stat-card.c-warn::after{background:#f59e0b}
+.stat-card.c-danger::after{background:#ef4444}
+.stat-card.c-ok::after{background:#22c55e}
+.stat-icon{position:absolute;right:16px;top:16px;opacity:.12;font-size:32px}
+.stat-label{font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:500}
+.stat-val{font-size:28px;font-weight:700;color:var(--text);transition:all .4s}
+.stat-val.c-warn{color:#d97706}
+.stat-val.c-danger{color:#dc2626}
+.stat-val.c-ok{color:#16a34a}
+.stat-sub{font-size:11px;color:var(--text3);margin-top:5px}
+
+/* ── Section header ── */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.section-title{font-size:14px;font-weight:700;letter-spacing:-.2px}
+
+/* ── Table ── */
+.table-wrap{background:var(--surface);border:.5px solid var(--border);border-radius:var(--rl);overflow:hidden;box-shadow:var(--shadow)}
+table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+th{
+  background:var(--surface2);padding:10px 16px;text-align:left;
+  font-size:10px;font-weight:700;color:var(--text3);
+  border-bottom:.5px solid var(--border);text-transform:uppercase;letter-spacing:.07em;
+}
+th.sortable{cursor:pointer;user-select:none;transition:color .15s}
+th.sortable:hover{color:var(--accent)}
+td{
+  padding:11px 16px;border-bottom:.5px solid var(--border);
+  color:var(--text);vertical-align:middle;
+}
+tr:last-child td{border-bottom:none}
+tbody tr{transition:background .1s}
+tbody tr:hover td{background:var(--surface2)}
+
+/* row animate-in */
+.row-enter{animation:rowIn .25s ease forwards}
+@keyframes rowIn{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
+
+/* ── Ürün ikonu hücresi ── */
+.urun-cell{display:flex;align-items:center;gap:12px}
+.urun-icon-wrap{
+  width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:transform .2s;
+}
+tr:hover .urun-icon-wrap{transform:scale(1.08) rotate(-2deg)}
+.urun-icon-wrap svg{width:22px;height:22px}
+.urun-name{font-weight:600;font-size:13px;line-height:1.3}
+.urun-raf{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* ── Badges ── */
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px}
+.badge-ok{background:#dcfce7;color:#166534}
+.badge-low{background:#fef3c7;color:#92400e}
+.badge-out{background:#fee2e2;color:#991b1b}
+.cat-pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:3px 9px;border-radius:6px;background:var(--surface2);border:.5px solid var(--border);color:var(--text2)}
+
+/* ── Stok bar ── */
+.stok-bar-wrap{display:flex;align-items:center;gap:8px}
+.stok-num{font-weight:700;min-width:28px;text-align:right}
+.stok-bar{flex:1;height:5px;background:var(--surface3);border-radius:3px;overflow:hidden}
+.stok-bar-fill{height:100%;border-radius:3px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.fill-ok{background:linear-gradient(90deg,#22c55e,#4ade80)}
+.fill-low{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+.fill-out{background:#ef4444}
+
+/* ── Icon buttons ── */
+.icon-btn{
+  width:30px;height:30px;border:.5px solid var(--border2);border-radius:var(--r);
+  background:transparent;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+  color:var(--text2);font-size:15px;transition:all .15s;
+}
+.icon-btn:hover{background:var(--surface2);color:var(--text);transform:scale(1.1)}
+.icon-btn.red:hover{background:#fee2e2;color:#991b1b;border-color:#fca5a5}
+.actions{display:flex;gap:5px}
+
+/* ── Hareketler timeline ── */
+.timeline{padding:8px 0}
+.timeline-item{
+  display:flex;align-items:flex-start;gap:14px;
+  padding:14px 20px;border-bottom:.5px solid var(--border);
+  animation:rowIn .25s ease forwards;transition:background .1s;
+}
+.timeline-item:last-child{border-bottom:none}
+.timeline-item:hover{background:var(--surface2)}
+.tl-dot{
+  width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:16px;flex-shrink:0;margin-top:1px;transition:transform .2s;
+}
+.timeline-item:hover .tl-dot{transform:scale(1.15)}
+.tl-in{background:#dcfce7;color:#166534}
+.tl-out{background:#fee2e2;color:#991b1b}
+.tl-body{flex:1}
+.tl-name{font-size:13px;font-weight:600;color:var(--text)}
+.tl-desc{font-size:12px;color:var(--text2);margin-top:2px}
+.tl-date{font-size:11px;color:var(--text3);margin-top:4px;display:flex;align-items:center;gap:4px}
+.tl-qty{font-size:15px;font-weight:700;white-space:nowrap}
+
+/* ── Uyarı kartlar ── */
+.warn-card{
+  display:flex;align-items:center;gap:14px;padding:16px 20px;
+  border-bottom:.5px solid var(--border);transition:background .15s;animation:rowIn .25s ease;
+}
+.warn-card:last-child{border-bottom:none}
+.warn-card:hover{background:var(--surface2)}
+.warn-dot{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.warn-low2{background:#fef3c7;color:#d97706}
+.warn-out2{background:#fee2e2;color:#dc2626}
+.warn-info{flex:1}
+.warn-name{font-size:13px;font-weight:600}
+.warn-desc{font-size:12px;color:var(--text2);margin-top:3px}
+
+/* ── Modal ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+.overlay.open{display:flex;animation:overlayIn .2s ease}
+@keyframes overlayIn{from{opacity:0}to{opacity:1}}
+.modal{
+  background:var(--surface);border-radius:var(--rl);border:.5px solid var(--border);
+  width:460px;max-width:95vw;max-height:90vh;overflow-y:auto;
+  box-shadow:var(--shadow-lg);animation:modalIn .25s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes modalIn{from{opacity:0;transform:scale(.93) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:.5px solid var(--border)}
+.modal-title{font-size:15px;font-weight:700;letter-spacing:-.2px}
+.modal-body{padding:20px 24px}
+.modal-foot{display:flex;gap:8px;justify-content:flex-end;padding:16px 24px;border-top:.5px solid var(--border)}
+.form-row{margin-bottom:14px}
+.form-label{font-size:12px;color:var(--text2);margin-bottom:5px;display:block;font-weight:600}
+.form-input{
+  width:100%;padding:9px 12px;font-size:13px;border:.5px solid var(--border2);
+  border-radius:var(--r);background:var(--surface2);color:var(--text);outline:none;
+  transition:border-color .15s,box-shadow .15s;
+}
+.form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,153,153,.1)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* ── Hızlı +/- stok ── */
+.quick-stock{display:flex;align-items:center;gap:6px}
+.qs-btn{
+  width:26px;height:26px;border-radius:6px;border:.5px solid var(--border2);
+  background:var(--surface2);cursor:pointer;font-size:16px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;color:var(--text2);
+  transition:all .15s;
+}
+.qs-btn:hover{background:var(--accent-light);color:var(--accent-dark);border-color:var(--accent)}
+.qs-val{font-size:13px;font-weight:700;min-width:28px;text-align:center}
+
+/* ── Toast ── */
+.toast-wrap{position:fixed;bottom:24px;right:24px;z-index:200;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{
+  background:var(--text);color:#fff;padding:11px 16px;border-radius:var(--r);
+  font-size:13px;display:flex;align-items:center;gap:8px;max-width:300px;
+  animation:toastIn .3s cubic-bezier(.34,1.56,.64,1);pointer-events:none;
+  box-shadow:0 4px 16px rgba(0,0,0,.2);
+}
+.toast.leaving{animation:toastOut .25s ease forwards}
+@keyframes toastIn{from{opacity:0;transform:translateX(40px) scale(.9)}to{opacity:1;transform:translateX(0) scale(1)}}
+@keyframes toastOut{to{opacity:0;transform:translateX(40px) scale(.9)}}
+
+/* ── Empty ── */
+.empty{text-align:center;padding:56px 24px;color:var(--text3);font-size:14px}
+.empty i{font-size:48px;display:block;margin-bottom:14px;opacity:.4}
+.empty p{margin-top:6px;font-size:13px}
+
+/* ── Sparkline ── */
+.spark-wrap{display:flex;align-items:flex-end;gap:2px;height:24px}
+.spark-bar{width:5px;border-radius:2px;background:var(--accent);opacity:.25;transition:all .3s}
+.spark-bar:last-child{opacity:1}
+
+/* ── Responsive ── */
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .form-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ═══ Sidebar ═══ -->
+<aside class="sidebar" id="sidebar">
+  <div class="logo-wrap">
+    <div class="logo-mark">
+      <!-- Warehouse SVG -->
+      <svg viewBox="0 0 24 24"><path d="M3 9.5L12 4l9 5.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+    </div>
+    <div>
+      <div class="logo-text">DepoStok</div>
+      <div class="logo-sub">Bayii Yönetim Paneli</div>
+    </div>
+  </div>
+  <nav>
+    <div class="nav-section">Genel</div>
+    <div class="nav-item active" id="nav-stok" onclick="showTab('stok',this)">
+      <i class="ti ti-layout-grid"></i> Stok Listesi
+    </div>
+    <div class="nav-item" id="nav-hareketler" onclick="showTab('hareketler',this)">
+      <i class="ti ti-arrows-exchange"></i> Hareketler
+    </div>
+    <div class="nav-section">Uyarılar</div>
+    <div class="nav-item" id="nav-uyarilar" onclick="showTab('uyarilar',this)">
+      <i class="ti ti-alert-triangle"></i> Kritik Stok
+      <span class="nav-badge" id="warnBadge">2</span>
+    </div>
+  </nav>
+</aside>
+
+<!-- ═══ Main ═══ -->
+<div class="main">
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="page-title" id="pageTitle">Stok Listesi</div>
+    <div class="search-wrap">
+      <i class="ti ti-search"></i>
+      <input type="text" id="searchInput" placeholder="Ürün adı veya model ara..." oninput="renderTable()">
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-secondary" onclick="exportCSV()"><i class="ti ti-download"></i> CSV</button>
+      <button class="btn btn-primary" onclick="openUrunModal()"><i class="ti ti-plus"></i> Ürün Ekle</button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- Tab: Stok -->
+    <div class="tab-pane active" id="tab-stok">
+      <div class="stats-grid" id="statsGrid"></div>
+
+      <div class="section-header">
+        <span class="section-title">Ürünler</span>
+        <div class="filter-row" style="margin:0">
+          <button class="chip active" onclick="setFilter('tumu',this)">Tümü</button>
+          <button class="chip" onclick="setFilter('Buzdolabı',this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="5" y1="9" x2="19" y2="9"/></svg>Buzdolabı
+          </button>
+          <button class="chip" onclick="setFilter('Çamaşır Makinesi',this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="13" r="4"/><circle cx="8" cy="7" r="1" fill="currentColor"/></svg>Çamaşır
+          </button>
+          <button class="chip" onclick="setFilter('Bulaşık Makinesi',this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 9h10M7 13h10M7 17h10"/></svg>Bulaşık
+          </button>
+          <button class="chip" onclick="setFilter('Fırın',this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><rect x="7" y="8" width="10" height="8" rx="1"/><circle cx="7.5" cy="6" r="1" fill="currentColor"/><circle cx="10.5" cy="6" r="1" fill="currentColor"/></svg>Fırın
+          </button>
+          <button class="chip" onclick="setFilter('Kurutma',this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="13" r="4"/><path d="M8 7h.01M11 7h.01"/></svg>Kurutma
+          </button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th style="width:38%">Ürün</th>
+            <th style="width:14%">Kategori</th>
+            <th style="width:18%">Stok Durumu</th>
+            <th style="width:10%">Min.</th>
+            <th style="width:8%">Raf</th>
+            <th style="width:12%">İşlem</th>
+          </tr></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab: Hareketler -->
+    <div class="tab-pane" id="tab-hareketler">
+      <div class="section-header">
+        <span class="section-title">Stok Hareketleri</span>
+        <button class="btn btn-primary" onclick="openHarModal()"><i class="ti ti-plus"></i> Hareket Ekle</button>
+      </div>
+      <div class="table-wrap timeline" id="harListesi"></div>
+    </div>
+
+    <!-- Tab: Uyarılar -->
+    <div class="tab-pane" id="tab-uyarilar">
+      <div class="section-header"><span class="section-title">Kritik Stok Uyarıları</span></div>
+      <div class="table-wrap" id="warnListesi"></div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<!-- Toast -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<!-- ═══ Modal: Ürün ═══ -->
+<div class="overlay" id="urunOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title" id="urunModalTitle">Yeni Ürün Ekle</span>
+      <button class="icon-btn" onclick="closeUrunModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label class="form-label">Ürün adı / model</label>
+        <input class="form-input" id="f-ad" type="text" placeholder="örn. IQ500 KG49NXXDF Buzdolabı">
+      </div>
+      <div class="form-grid">
+        <div class="form-row">
+          <label class="form-label">Kategori</label>
+          <select class="form-input" id="f-kat">
+            <option>Buzdolabı</option>
+            <option>Çamaşır Makinesi</option>
+            <option>Bulaşık Makinesi</option>
+            <option>Fırın</option>
+            <option>Kurutma</option>
+            <option>Diğer</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Raf / Konum</label>
+          <input class="form-input" id="f-raf" type="text" placeholder="örn. A-12">
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-row">
+          <label class="form-label">Başlangıç stok</label>
+          <input class="form-input" id="f-stok" type="number" min="0" placeholder="0">
+        </div>
+        <div class="form-row">
+          <label class="form-label">Minimum (uyarı eşiği)</label>
+          <input class="form-input" id="f-min" type="number" min="0" placeholder="5">
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeUrunModal()">İptal</button>
+      <button class="btn btn-primary" onclick="kaydetUrun()"><i class="ti ti-check"></i> Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Modal: Hareket ═══ -->
+<div class="overlay" id="harOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title">Stok Hareketi Ekle</span>
+      <button class="icon-btn" onclick="closeHarModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label class="form-label">Ürün</label>
+        <select class="form-input" id="h-urun" onchange="harUrunChange()"></select>
+      </div>
+      <div id="harUrunInfo" style="display:none;background:var(--surface2);border-radius:var(--r);padding:12px 14px;margin-bottom:14px;font-size:13px;border:.5px solid var(--border)">
+        <span id="harUrunInfoText"></span>
+      </div>
+      <div class="form-grid">
+        <div class="form-row">
+          <label class="form-label">İşlem türü</label>
+          <select class="form-input" id="h-tur">
+            <option value="giris">📦 Giriş (stok artar)</option>
+            <option value="cikis">🛒 Çıkış / Satış</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Adet</label>
+          <input class="form-input" id="h-adet" type="number" min="1" placeholder="1">
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Açıklama (opsiyonel)</label>
+        <input class="form-input" id="h-aciklama" type="text" placeholder="örn. Müşteri siparişi, tedarikçi teslimatı...">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeHarModal()">İptal</button>
+      <button class="btn btn-primary" onclick="kaydetHareket()"><i class="ti ti-check"></i> Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═════════════════ SVG IKONLAR ════════════════ */
+const SVG = {
+  'Buzdolabı': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="5" y="2" width="14" height="20" rx="2"/>
+    <line x1="5" y1="9" x2="19" y2="9"/>
+    <line x1="9" y1="5.5" x2="9" y2="7.5"/>
+    <line x1="9" y1="12" x2="9" y2="17"/>
+  </svg>`,
+  'Çamaşır Makinesi': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2"/>
+    <circle cx="12" cy="13" r="4"/>
+    <circle cx="8" cy="7" r="1" fill="currentColor" stroke="none"/>
+    <circle cx="11.5" cy="7" r="1" fill="currentColor" stroke="none"/>
+  </svg>`,
+  'Bulaşık Makinesi': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2"/>
+    <line x1="3" y1="9" x2="21" y2="9"/>
+    <line x1="8" y1="13" x2="16" y2="13"/>
+    <line x1="8" y1="16" x2="14" y2="16"/>
+    <circle cx="7" cy="6" r="1" fill="currentColor" stroke="none"/>
+  </svg>`,
+  'Fırın': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="4" width="18" height="16" rx="2"/>
+    <rect x="7" y="8" width="10" height="8" rx="1"/>
+    <circle cx="7.5" cy="6" r="1" fill="currentColor" stroke="none"/>
+    <circle cx="10.5" cy="6" r="1" fill="currentColor" stroke="none"/>
+  </svg>`,
+  'Kurutma': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2"/>
+    <circle cx="12" cy="13" r="4"/>
+    <path d="M8.5 7h.01M12 7h.01"/>
+    <path d="M12 9l.01 0"/>
+  </svg>`,
+  'Diğer': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2"/>
+    <path d="M9 9h6M9 12h6M9 15h4"/>
+  </svg>`
+};
+
+const KAT_RENK = {
+  'Buzdolabı':       {bg:'#e0f2fe',color:'#0369a1'},
+  'Çamaşır Makinesi':{bg:'#ede9fe',color:'#6d28d9'},
+  'Bulaşık Makinesi':{bg:'#d1fae5',color:'#065f46'},
+  'Fırın':           {bg:'#fee2e2',color:'#991b1b'},
+  'Kurutma':         {bg:'#fef3c7',color:'#92400e'},
+  'Diğer':           {bg:'#f1f5f9',color:'#475569'},
+};
+
+/* ═════════════════ VERİ ════════════════ */
+let urunler = [
+  {id:1,ad:'IQ500 KG49NXXDF Buzdolabı',       kat:'Buzdolabı',        stok:8,  min:5, raf:'A-01'},
+  {id:2,ad:'WM14T460TR Çamaşır Makinesi',      kat:'Çamaşır Makinesi', stok:2,  min:5, raf:'B-03'},
+  {id:3,ad:'SN636X04TE Bulaşık Makinesi',      kat:'Bulaşık Makinesi', stok:12, min:4, raf:'C-02'},
+  {id:4,ad:'HB678GBS6 Ankastre Fırın',         kat:'Fırın',            stok:0,  min:3, raf:'D-01'},
+  {id:5,ad:'WT47W5W0TR Kurutma Makinesi',      kat:'Kurutma',          stok:6,  min:3, raf:'B-07'},
+  {id:6,ad:'KA95IFP1EG NoFrost Buzdolabı',     kat:'Buzdolabı',        stok:19, min:4, raf:'A-05'},
+];
+let hareketler = [
+  {id:1,urunId:1,tur:'giris', adet:5, aciklama:'Depo girişi',         tarih:'2025-06-13 09:14'},
+  {id:2,urunId:2,tur:'cikis', adet:2, aciklama:'Satış çıkışı',        tarih:'2025-06-13 08:30'},
+  {id:3,urunId:4,tur:'cikis', adet:1, aciklama:'Müşteri siparişi',    tarih:'2025-06-12 17:45'},
+  {id:4,urunId:3,tur:'giris', adet:3, aciklama:'Tedarikçi teslimatı', tarih:'2025-06-12 11:00'},
+  {id:5,urunId:1,tur:'cikis', adet:3, aciklama:'Satış çıkışı',        tarih:'2025-06-11 14:20'},
+];
+
+let aktifFilter='tumu', editId=null;
+
+/* ═════════════════ STATS ════════════════ */
+function animCount(el, target) {
+  const start = parseInt(el.textContent) || 0;
+  const step = (target - start) / 20;
+  let cur = start, i = 0;
+  const tick = () => {
+    cur += step; i++;
+    el.textContent = Math.round(i >= 20 ? target : cur);
+    if (i < 20) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+function renderStats() {
+  const toplam = urunler.length;
+  const toplamAd = urunler.reduce((a,u) => a+u.stok, 0);
+  const kritik  = urunler.filter(u => u.stok>0 && u.stok<u.min).length;
+  const tukenen = urunler.filter(u => u.stok===0).length;
+
+  const g = document.getElementById('statsGrid');
+  g.innerHTML = `
+    <div class="stat-card c-normal">
+      <i class="stat-icon ti ti-package"></i>
+      <div class="stat-label">Toplam ürün çeşidi</div>
+      <div class="stat-val" id="sv-toplam">${toplam}</div>
+      <div class="stat-sub">depodaki model sayısı</div>
+    </div>
+    <div class="stat-card c-ok">
+      <i class="stat-icon ti ti-stack"></i>
+      <div class="stat-label">Toplam stok adedi</div>
+      <div class="stat-val c-ok" id="sv-adet">${toplamAd}</div>
+      <div class="stat-sub">tüm kategoriler</div>
+    </div>
+    <div class="stat-card c-warn">
+      <i class="stat-icon ti ti-alert-triangle"></i>
+      <div class="stat-label">Kritik stok</div>
+      <div class="stat-val c-warn" id="sv-krit">${kritik}</div>
+      <div class="stat-sub">minimum altı</div>
+    </div>
+    <div class="stat-card c-danger">
+      <i class="stat-icon ti ti-package-off"></i>
+      <div class="stat-label">Tükenen ürün</div>
+      <div class="stat-val c-danger" id="sv-tuk">${tukenen}</div>
+      <div class="stat-sub">stok sıfır</div>
+    </div>
+  `;
+}
+
+/* ═════════════════ TABLO ════════════════ */
+function stokDurum(s, m) {
+  if (s===0) return {cls:'badge-out', txt:'Tükendi'};
+  if (s<m)   return {cls:'badge-low', txt:'Kritik'};
+  return     {cls:'badge-ok', txt:'Yeterli'};
+}
+
+function stokBarHTML(stok, min) {
+  const max = Math.max(min*2, stok, 1);
+  const pct = Math.min(100, Math.round(stok/max*100));
+  const cls = stok===0 ? 'fill-out' : stok<min ? 'fill-low' : 'fill-ok';
+  return `<div class="stok-bar-wrap">
+    <span class="stok-num">${stok}</span>
+    <div class="stok-bar"><div class="stok-bar-fill ${cls}" style="width:${pct}%"></div></div>
+  </div>`;
+}
+
+function renderTable() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const list = urunler.filter(u => {
+    const catOk = aktifFilter==='tumu' || u.kat===aktifFilter;
+    const qOk = u.ad.toLowerCase().includes(q) || u.kat.toLowerCase().includes(q) || u.raf.toLowerCase().includes(q);
+    return catOk && qOk;
+  });
+
+  const tb = document.getElementById('tableBody');
+  if (!list.length) {
+    tb.innerHTML = `<tr><td colspan="6"><div class="empty"><i class="ti ti-search-off"></i><p>Sonuç bulunamadı</p></div></td></tr>`;
+    return;
+  }
+
+  tb.innerHTML = list.map((u,i) => {
+    const renk = KAT_RENK[u.kat] || KAT_RENK['Diğer'];
+    const svg  = SVG[u.kat] || SVG['Diğer'];
+    const dur  = stokDurum(u.stok, u.min);
+    return `<tr style="animation-delay:${i*30}ms" class="row-enter">
+      <td>
+        <div class="urun-cell">
+          <div class="urun-icon-wrap" style="background:${renk.bg};color:${renk.color}">${svg}</div>
+          <div>
+            <div class="urun-name">${u.ad}</div>
+            <div class="urun-raf"><i class="ti ti-map-pin" style="font-size:11px;vertical-align:-1px"></i> ${u.raf||'—'}</div>
+          </div>
+        </div>
+      </td>
+      <td><span class="cat-pill" style="background:${renk.bg};color:${renk.color};border-color:${renk.color}22">${u.kat}</span></td>
+      <td>${stokBarHTML(u.stok, u.min)}</td>
+      <td style="color:var(--text3);font-size:13px">${u.min}</td>
+      <td style="font-size:12px;color:var(--text2);font-weight:500">${u.raf||'—'}</td>
+      <td>
+        <div class="actions">
+          <button class="icon-btn" title="Düzenle" onclick="duzeltUrun(${u.id})"><i class="ti ti-edit"></i></button>
+          <button class="icon-btn" title="Hızlı stok hareketi" onclick="hizliHar(${u.id})" style="color:var(--accent)"><i class="ti ti-arrows-exchange"></i></button>
+          <button class="icon-btn red" title="Sil" onclick="silUrun(${u.id})"><i class="ti ti-trash"></i></button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+/* ═════════════════ HAREKETLERİ ════════════════ */
+function renderHareketler() {
+  const el = document.getElementById('harListesi');
+  if (!hareketler.length) {
+    el.innerHTML = `<div class="empty"><i class="ti ti-list"></i><p>Henüz hareket kaydı yok</p></div>`;
+    return;
+  }
+  el.innerHTML = [...hareketler].reverse().map((h,i) => {
+    const u = urunler.find(x=>x.id===h.urunId);
+    const isIn = h.tur==='giris';
+    const renk = u ? (KAT_RENK[u.kat]||KAT_RENK['Diğer']) : {bg:'#f1f5f9',color:'#475569'};
+    const svg  = u ? (SVG[u.kat]||SVG['Diğer']) : SVG['Diğer'];
+    return `<div class="timeline-item" style="animation-delay:${i*25}ms">
+      <div class="tl-dot ${isIn?'tl-in':'tl-out'}">
+        <i class="ti ti-${isIn?'arrow-bar-to-down':'arrow-bar-to-up'}"></i>
+      </div>
+      <div style="width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:${renk.bg};color:${renk.color};flex-shrink:0">${svg}</div>
+      <div class="tl-body">
+        <div class="tl-name">${u?u.ad:'Bilinmeyen ürün'}</div>
+        <div class="tl-desc">${h.aciklama}</div>
+        <div class="tl-date"><i class="ti ti-clock" style="font-size:11px"></i>${h.tarih}</div>
+      </div>
+      <div class="tl-qty" style="color:${isIn?'#16a34a':'#dc2626'}">${isIn?'+':'-'}${h.adet}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ═════════════════ UYARILAR ════════════════ */
+function renderUyarilar() {
+  const uyar = urunler.filter(u=>u.stok<u.min);
+  const badge = document.getElementById('warnBadge');
+  badge.textContent = uyar.length;
+  badge.style.display = uyar.length?'':'none';
+
+  const el = document.getElementById('warnListesi');
+  if (!uyar.length) {
+    el.innerHTML = `<div class="empty"><i class="ti ti-circle-check" style="color:#16a34a;opacity:1"></i><p>Tüm ürünler yeterli stokta!</p></div>`;
+    return;
+  }
+  el.innerHTML = uyar.map((u,i)=>{
+    const renk = KAT_RENK[u.kat]||KAT_RENK['Diğer'];
+    const svg  = SVG[u.kat]||SVG['Diğer'];
+    const isOut = u.stok===0;
+    return `<div class="warn-card" style="animation-delay:${i*30}ms">
+      <div class="warn-dot ${isOut?'warn-out2':'warn-low2'}">
+        <i class="ti ti-${isOut?'package-off':'alert-triangle'}"></i>
+      </div>
+      <div style="width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:${renk.bg};color:${renk.color};flex-shrink:0">${svg}</div>
+      <div class="warn-info">
+        <div class="warn-name">${u.ad}</div>
+        <div class="warn-desc">${isOut ? '<span style="color:#dc2626;font-weight:600">Stok tamamen tükendi!</span>' : `Mevcut: <b>${u.stok}</b> — minimum: <b>${u.min}</b>`}</div>
+      </div>
+      <button class="btn btn-primary" style="font-size:12px;padding:7px 13px" onclick="hizliHar(${u.id})">
+        <i class="ti ti-plus"></i> Stok Ekle
+      </button>
+    </div>`;
+  }).join('');
+}
+
+/* ═════════════════ MODAL ÜRÜN ════════════════ */
+function openUrunModal(){
+  editId=null;
+  document.getElementById('urunModalTitle').textContent='Yeni Ürün Ekle';
+  ['f-ad','f-raf'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-stok').value='';
+  document.getElementById('f-min').value='';
+  document.getElementById('urunOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('f-ad').focus(),250);
+}
+function duzeltUrun(id){
+  const u=urunler.find(x=>x.id===id); if(!u)return;
+  editId=id;
+  document.getElementById('urunModalTitle').textContent='Ürünü Düzenle';
+  document.getElementById('f-ad').value=u.ad;
+  document.getElementById('f-kat').value=u.kat;
+  document.getElementById('f-raf').value=u.raf;
+  document.getElementById('f-stok').value=u.stok;
+  document.getElementById('f-min').value=u.min;
+  document.getElementById('urunOverlay').classList.add('open');
+}
+function closeUrunModal(){document.getElementById('urunOverlay').classList.remove('open')}
+function kaydetUrun(){
+  const ad=document.getElementById('f-ad').value.trim();
+  const kat=document.getElementById('f-kat').value;
+  const raf=document.getElementById('f-raf').value.trim();
+  const stok=parseInt(document.getElementById('f-stok').value)||0;
+  const min=parseInt(document.getElementById('f-min').value)||0;
+  if(!ad){toast('Ürün adı boş olamaz!','warn');return;}
+  if(editId){
+    const u=urunler.find(x=>x.id===editId);
+    Object.assign(u,{ad,kat,raf,stok,min});
+    toast('Ürün güncellendi.');
+  }else{
+    const newId=Math.max(0,...urunler.map(u=>u.id))+1;
+    urunler.push({id:newId,ad,kat,raf,stok,min});
+    toast('Ürün eklendi.');
+  }
+  closeUrunModal(); renderAll();
+}
+function silUrun(id){
+  if(!confirm('Bu ürünü silmek istediğinize emin misiniz?'))return;
+  urunler=urunler.filter(u=>u.id!==id);
+  hareketler=hareketler.filter(h=>h.urunId!==id);
+  toast('Ürün silindi.'); renderAll();
+}
+
+/* ═════════════════ MODAL HAREKET ════════════════ */
+function openHarModal(preId){
+  const sel=document.getElementById('h-urun');
+  sel.innerHTML=urunler.map(u=>`<option value="${u.id}">${u.ad} (stok: ${u.stok})</option>`).join('');
+  if(preId) sel.value=preId;
+  document.getElementById('h-adet').value='';
+  document.getElementById('h-aciklama').value='';
+  harUrunChange();
+  document.getElementById('harOverlay').classList.add('open');
+}
+function hizliHar(id){openHarModal(id)}
+function closeHarModal(){document.getElementById('harOverlay').classList.remove('open')}
+
+function harUrunChange(){
+  const urunId=parseInt(document.getElementById('h-urun').value);
+  const u=urunler.find(x=>x.id===urunId);
+  const info=document.getElementById('harUrunInfo');
+  const txt=document.getElementById('harUrunInfoText');
+  if(u){
+    const dur=stokDurum(u.stok,u.min);
+    txt.innerHTML=`<b>${u.ad}</b> &nbsp;·&nbsp; Raf: ${u.raf} &nbsp;·&nbsp; Mevcut stok: <b style="color:${u.stok===0?'#dc2626':u.stok<u.min?'#d97706':'#16a34a'}">${u.stok}</b> adet &nbsp;·&nbsp; Min: ${u.min}`;
+    info.style.display='block';
+  }else{
+    info.style.display='none';
+  }
+}
+
+function kaydetHareket(){
+  const urunId=parseInt(document.getElementById('h-urun').value);
+  const tur=document.getElementById('h-tur').value;
+  const adet=parseInt(document.getElementById('h-adet').value);
+  const aciklama=document.getElementById('h-aciklama').value.trim();
+  if(!adet||adet<1){toast('Geçerli bir adet girin!','warn');return;}
+  const u=urunler.find(x=>x.id===urunId); if(!u)return;
+  if(tur==='cikis'&&adet>u.stok){toast(`Stokta sadece ${u.stok} adet var!`,'warn');return;}
+  u.stok=tur==='giris'?u.stok+adet:u.stok-adet;
+  const now=new Date();
+  const tarih=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  hareketler.push({id:Math.max(0,...hareketler.map(h=>h.id))+1,urunId,tur,adet,aciklama:aciklama||(tur==='giris'?'Stok girişi':'Stok çıkışı'),tarih});
+  closeHarModal();
+  toast(tur==='giris'?`+${adet} adet eklendi ✓`:`-${adet} adet çıkıldı ✓`);
+  renderAll();
+}
+
+/* ═════════════════ CSV ════════════════ */
+function exportCSV(){
+  const h=['ID','Ürün Adı','Kategori','Stok','Minimum','Raf'];
+  const r=urunler.map(u=>[u.id,`"${u.ad}"`,u.kat,u.stok,u.min,u.raf].join(','));
+  const csv=[h.join(','),...r].join('\n');
+  const b=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(b);
+  a.download=`stok-raporu-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  toast('CSV dosyası indirildi.');
+}
+
+/* ═════════════════ YARDIMCI ════════════════ */
+function pad(n){return String(n).padStart(2,'0')}
+
+function setFilter(f,el){
+  aktifFilter=f;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderTable();
+}
+
+const titles={stok:'Stok Listesi',hareketler:'Stok Hareketleri',uyarilar:'Kritik Stok'};
+function showTab(tab,el){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.getElementById('pageTitle').textContent=titles[tab]||'';
+  if(tab==='hareketler')renderHareketler();
+  if(tab==='uyarilar')renderUyarilar();
+}
+
+function toast(msg,type){
+  const wrap=document.getElementById('toastWrap');
+  const t=document.createElement('div');
+  t.className='toast';
+  t.style.background=type==='warn'?'#92400e':'#111';
+  t.innerHTML=`<i class="ti ti-${type==='warn'?'alert-triangle':'check'}" style="font-size:16px"></i> ${msg}`;
+  wrap.appendChild(t);
+  setTimeout(()=>{t.classList.add('leaving');setTimeout(()=>t.remove(),300)},2700);
+}
+
+function renderAll(){
+  renderStats();
+  renderTable();
+  renderUyarilar();
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){closeUrunModal();closeHarModal()}
+});
+['urunOverlay','harOverlay'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',function(e){
+    if(e.target===this)this.classList.remove('open');
+  });
+});
+
+renderAll();
+</script>
+</body>
+</html>
