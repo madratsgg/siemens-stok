@@ -270,6 +270,20 @@ tr:hover .urun-icon-wrap{transform:scale(1.08) rotate(-2deg)}
 @keyframes toastIn{from{opacity:0;transform:translateX(40px) scale(.9)}to{opacity:1;transform:translateX(0) scale(1)}}
 @keyframes toastOut{to{opacity:0;transform:translateX(40px) scale(.9)}}
 
+/* ── Yolda durum badge ── */
+.badge-siparis{background:#ede9fe;color:#5b21b6}
+.badge-yolda{background:#dbeafe;color:#1e40af}
+.badge-gumruk{background:#fef3c7;color:#92400e}
+.badge-teslim{background:#dcfce7;color:#166534}
+.teslim-btn{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11px;padding:5px 11px;border-radius:20px;
+  background:var(--accent-light);color:var(--accent-dark);
+  border:.5px solid var(--accent);cursor:pointer;font-weight:600;
+  transition:all .15s;
+}
+.teslim-btn:hover{background:var(--accent);color:#fff}
+
 /* ── Empty ── */
 .empty{text-align:center;padding:56px 24px;color:var(--text3);font-size:14px}
 .empty i{font-size:48px;display:block;margin-bottom:14px;opacity:.4}
@@ -312,6 +326,11 @@ tr:hover .urun-icon-wrap{transform:scale(1.08) rotate(-2deg)}
     </div>
     <div class="nav-item" id="nav-hareketler" onclick="showTab('hareketler',this)">
       <i class="ti ti-arrows-exchange"></i> Hareketler
+    </div>
+    <div class="nav-section">Lojistik</div>
+    <div class="nav-item" id="nav-yolda" onclick="showTab('yolda',this)">
+      <i class="ti ti-truck"></i> Yolda / Gelen
+      <span class="nav-badge" id="yoldaBadge" style="display:none">0</span>
     </div>
     <div class="nav-section">Uyarılar</div>
     <div class="nav-item" id="nav-uyarilar" onclick="showTab('uyarilar',this)">
@@ -392,6 +411,28 @@ tr:hover .urun-icon-wrap{transform:scale(1.08) rotate(-2deg)}
     <div class="tab-pane" id="tab-uyarilar">
       <div class="section-header"><span class="section-title">Kritik Stok Uyarıları</span></div>
       <div class="table-wrap" id="warnListesi"></div>
+    </div>
+
+    <!-- Tab: Yolda -->
+    <div class="tab-pane" id="tab-yolda">
+      <div class="section-header">
+        <span class="section-title">Yolda / Gelen Siparişler</span>
+        <button class="btn btn-primary" onclick="openSipModal()"><i class="ti ti-plus"></i> Sipariş Ekle</button>
+      </div>
+      <div class="stats-grid" id="yoldaStatsGrid" style="margin-bottom:20px"></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th style="width:32%">Ürün</th>
+            <th style="width:15%">Tedarikçi</th>
+            <th style="width:10%">Adet</th>
+            <th style="width:15%">Beklenen Tarih</th>
+            <th style="width:14%">Durum</th>
+            <th style="width:14%">İşlem</th>
+          </tr></thead>
+          <tbody id="yoldaBody"></tbody>
+        </table>
+      </div>
     </div>
 
   </div>
@@ -488,6 +529,54 @@ tr:hover .urun-icon-wrap{transform:scale(1.08) rotate(-2deg)}
   </div>
 </div>
 
+<!-- ═══ Modal: Sipariş ═══ -->
+<div class="overlay" id="sipOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title" id="sipModalTitle">Yeni Sipariş Ekle</span>
+      <button class="icon-btn" onclick="closeSipModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label class="form-label">Ürün</label>
+        <select class="form-input" id="s-urun"></select>
+      </div>
+      <div class="form-grid">
+        <div class="form-row">
+          <label class="form-label">Tedarikçi</label>
+          <input class="form-input" id="s-tedarikci" type="text" placeholder="örn. BSH Türkiye">
+        </div>
+        <div class="form-row">
+          <label class="form-label">Adet</label>
+          <input class="form-input" id="s-adet" type="number" min="1" placeholder="5">
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-row">
+          <label class="form-label">Beklenen Teslim Tarihi</label>
+          <input class="form-input" id="s-tarih" type="date">
+        </div>
+        <div class="form-row">
+          <label class="form-label">Durum</label>
+          <select class="form-input" id="s-durum">
+            <option value="siparis">🛒 Sipariş Verildi</option>
+            <option value="yolda">🚚 Yolda</option>
+            <option value="gumruk">🏛️ Gümrükte</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Not (opsiyonel)</label>
+        <input class="form-input" id="s-not" type="text" placeholder="Sipariş no, kargo takip, vb.">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeSipModal()">İptal</button>
+      <button class="btn btn-primary" onclick="kaydetSiparis()"><i class="ti ti-check"></i> Kaydet</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ═════════════════ SVG IKONLAR ════════════════ */
 const SVG = {
@@ -554,7 +643,13 @@ let hareketler = [
   {id:5,urunId:1,tur:'cikis', adet:3, aciklama:'Satış çıkışı',        tarih:'2025-06-11 14:20'},
 ];
 
-let aktifFilter='tumu', editId=null;
+let siparisler = [
+  {id:1, urunId:2, tedarikci:'BSH Türkiye',    adet:5, tarih:'2025-06-18', durum:'yolda',   not:'TRK-2025-441'},
+  {id:2, urunId:4, tedarikci:'Siemens TR',      adet:3, tarih:'2025-06-20', durum:'siparis', not:'SIP-88912'},
+  {id:3, urunId:6, tedarikci:'Bosch Dağıtım',  adet:2, tarih:'2025-06-16', durum:'gumruk',  not:'Kargo bekleniyor'},
+];
+
+let aktifFilter='tumu', editId=null, editSipId=null;
 
 /* ═════════════════ STATS ════════════════ */
 function animCount(el, target) {
@@ -814,6 +909,149 @@ function kaydetHareket(){
   renderAll();
 }
 
+/* ═════════════════ YOLDA / SİPARİŞLER ════════════════ */
+const SIP_DURUM = {
+  siparis: {cls:'badge-siparis', txt:'Sipariş Verildi', icon:'shopping-cart'},
+  yolda:   {cls:'badge-yolda',   txt:'Yolda',           icon:'truck'},
+  gumruk:  {cls:'badge-gumruk',  txt:'Gümrükte',        icon:'building-bank'},
+};
+
+function renderYoldaStats() {
+  const g = document.getElementById('yoldaStatsGrid');
+  const toplamAdet = siparisler.reduce((a,s) => a+s.adet, 0);
+  const yoldaAdet  = siparisler.filter(s=>s.durum==='yolda').reduce((a,s)=>a+s.adet,0);
+  const buHafta    = siparisler.filter(s=>{
+    const d=new Date(s.tarih), now=new Date();
+    const diff=(d-now)/(1000*3600*24);
+    return diff>=0 && diff<=7;
+  }).length;
+  g.innerHTML = `
+    <div class="stat-card c-normal">
+      <i class="stat-icon ti ti-package-import"></i>
+      <div class="stat-label">Bekleyen sipariş</div>
+      <div class="stat-val">${siparisler.length}</div>
+      <div class="stat-sub">toplam kalem</div>
+    </div>
+    <div class="stat-card c-ok">
+      <i class="stat-icon ti ti-truck"></i>
+      <div class="stat-label">Yolda ürün adedi</div>
+      <div class="stat-val c-ok">${yoldaAdet}</div>
+      <div class="stat-sub">transit kargo</div>
+    </div>
+    <div class="stat-card c-warn">
+      <i class="stat-icon ti ti-calendar-due"></i>
+      <div class="stat-label">Bu hafta geliyor</div>
+      <div class="stat-val c-warn">${buHafta}</div>
+      <div class="stat-sub">7 gün içinde</div>
+    </div>
+  `;
+}
+
+function renderYolda() {
+  renderYoldaStats();
+  const badge = document.getElementById('yoldaBadge');
+  badge.textContent = siparisler.length;
+  badge.style.display = siparisler.length ? '' : 'none';
+
+  const tb = document.getElementById('yoldaBody');
+  if (!siparisler.length) {
+    tb.innerHTML = `<tr><td colspan="6"><div class="empty"><i class="ti ti-truck-off"></i><p>Bekleyen sipariş yok</p></div></td></tr>`;
+    return;
+  }
+  const today = new Date(); today.setHours(0,0,0,0);
+  tb.innerHTML = siparisler.map((s,i) => {
+    const u = urunler.find(x=>x.id===s.urunId);
+    const renk = u ? (KAT_RENK[u.kat]||KAT_RENK['Diğer']) : {bg:'#f1f5f9',color:'#475569'};
+    const svg  = u ? (SVG[u.kat]||SVG['Diğer']) : SVG['Diğer'];
+    const dur  = SIP_DURUM[s.durum];
+    const teslimD = new Date(s.tarih);
+    const gecikme = teslimD < today;
+    const tarihStyle = gecikme ? 'color:#dc2626;font-weight:600' : '';
+    return `<tr style="animation-delay:${i*30}ms" class="row-enter">
+      <td>
+        <div class="urun-cell">
+          <div class="urun-icon-wrap" style="background:${renk.bg};color:${renk.color}">${svg}</div>
+          <div>
+            <div class="urun-name">${u ? u.ad : 'Bilinmeyen ürün'}</div>
+            <div class="urun-raf" style="color:var(--text3)">${s.not||'—'}</div>
+          </div>
+        </div>
+      </td>
+      <td style="font-size:12px;color:var(--text2)">${s.tedarikci||'—'}</td>
+      <td style="font-weight:700;font-size:14px">${s.adet}</td>
+      <td style="${tarihStyle};font-size:12px">${gecikme?'⚠️ ':''}${s.tarih}</td>
+      <td><span class="badge ${dur.cls}"><i class="ti ti-${dur.icon}"></i> ${dur.txt}</span></td>
+      <td>
+        <div class="actions">
+          <button class="teslim-btn" onclick="teslimAl(${s.id})"><i class="ti ti-package-import" style="font-size:13px"></i> Teslim Al</button>
+          <button class="icon-btn red" title="Sil" onclick="silSiparis(${s.id})"><i class="ti ti-trash"></i></button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openSipModal() {
+  editSipId = null;
+  document.getElementById('sipModalTitle').textContent = 'Yeni Sipariş Ekle';
+  const sel = document.getElementById('s-urun');
+  sel.innerHTML = urunler.map(u=>`<option value="${u.id}">${u.ad}</option>`).join('');
+  document.getElementById('s-tedarikci').value = '';
+  document.getElementById('s-adet').value = '';
+  document.getElementById('s-not').value = '';
+  document.getElementById('s-durum').value = 'siparis';
+  // default tarih: bugünden 7 gün sonra
+  const d = new Date(); d.setDate(d.getDate()+7);
+  document.getElementById('s-tarih').value = d.toISOString().slice(0,10);
+  document.getElementById('sipOverlay').classList.add('open');
+}
+function closeSipModal() { document.getElementById('sipOverlay').classList.remove('open'); }
+
+function kaydetSiparis() {
+  const urunId = parseInt(document.getElementById('s-urun').value);
+  const tedarikci = document.getElementById('s-tedarikci').value.trim();
+  const adet = parseInt(document.getElementById('s-adet').value);
+  const tarih = document.getElementById('s-tarih').value;
+  const durum = document.getElementById('s-durum').value;
+  const not = document.getElementById('s-not').value.trim();
+  if (!adet || adet < 1) { toast('Geçerli bir adet girin!', 'warn'); return; }
+  if (!tarih) { toast('Teslim tarihi seçin!', 'warn'); return; }
+  siparisler.push({
+    id: Math.max(0, ...siparisler.map(s=>s.id)) + 1,
+    urunId, tedarikci, adet, tarih, durum, not
+  });
+  closeSipModal();
+  toast('Sipariş eklendi.');
+  renderYolda();
+}
+
+function silSiparis(id) {
+  if (!confirm('Bu siparişi silmek istediğinize emin misiniz?')) return;
+  siparisler = siparisler.filter(s=>s.id!==id);
+  toast('Sipariş silindi.');
+  renderYolda();
+}
+
+function teslimAl(id) {
+  const s = siparisler.find(x=>x.id===id); if (!s) return;
+  const u = urunler.find(x=>x.id===s.urunId);
+  if (!u) { toast('Ürün bulunamadı!', 'warn'); return; }
+  if (!confirm(`"${u.ad}" için ${s.adet} adet stoka eklenecek. Onaylıyor musunuz?`)) return;
+  u.stok += s.adet;
+  const now = new Date();
+  const tarih = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  hareketler.push({
+    id: Math.max(0,...hareketler.map(h=>h.id))+1,
+    urunId: u.id, tur: 'giris', adet: s.adet,
+    aciklama: `Sipariş teslimi — ${s.tedarikci||'tedarikçi'}`,
+    tarih
+  });
+  siparisler = siparisler.filter(x=>x.id!==id);
+  toast(`✓ ${s.adet} adet stoka eklendi, sipariş kapatıldı.`);
+  renderAll();
+  renderYolda();
+}
+
 /* ═════════════════ CSV ════════════════ */
 function exportCSV(){
   const h=['ID','Ürün Adı','Kategori','Stok','Minimum','Raf'];
@@ -837,7 +1075,7 @@ function setFilter(f,el){
   renderTable();
 }
 
-const titles={stok:'Stok Listesi',hareketler:'Stok Hareketleri',uyarilar:'Kritik Stok'};
+const titles={stok:'Stok Listesi',hareketler:'Stok Hareketleri',uyarilar:'Kritik Stok',yolda:'Yolda / Gelen Siparişler'};
 function showTab(tab,el){
   document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
@@ -846,6 +1084,7 @@ function showTab(tab,el){
   document.getElementById('pageTitle').textContent=titles[tab]||'';
   if(tab==='hareketler')renderHareketler();
   if(tab==='uyarilar')renderUyarilar();
+  if(tab==='yolda')renderYolda();
 }
 
 function toast(msg,type){
@@ -865,15 +1104,21 @@ function renderAll(){
 }
 
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){closeUrunModal();closeHarModal()}
+  if(e.key==='Escape'){closeUrunModal();closeHarModal();closeSipModal();}
 });
-['urunOverlay','harOverlay'].forEach(id=>{
+['urunOverlay','harOverlay','sipOverlay'].forEach(id=>{
   document.getElementById(id).addEventListener('click',function(e){
     if(e.target===this)this.classList.remove('open');
   });
 });
 
 renderAll();
+// Yolda badge init
+(function(){
+  const b=document.getElementById('yoldaBadge');
+  b.textContent=siparisler.length;
+  b.style.display=siparisler.length?'':'none';
+})();
 </script>
 </body>
 </html>
